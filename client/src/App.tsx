@@ -10,6 +10,7 @@ import AuthPage from "@/pages/auth-page";
 import CoursePage from "@/pages/course-page";
 import CreateCourse from "@/pages/create-course";
 import AnalyticsPage from "@/pages/analytics-page";
+import EducatorDashboard from "@/pages/educator-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
             <ProtectedRoute path="/courses/:id" component={CoursePage} />
             <ProtectedRoute path="/create-course" component={CreateCourse} />
             <ProtectedRoute path="/analytics" component={AnalyticsPage} />
+            <ProtectedRoute path="/educator-dashboard" component={EducatorDashboard} />
             <Route component={NotFound} />
           </Switch>
         </Route>
