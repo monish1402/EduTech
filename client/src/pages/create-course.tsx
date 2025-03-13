@@ -63,6 +63,13 @@ export default function CreateCourse() {
       });
       navigate("/");
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create course",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -140,6 +147,57 @@ export default function CreateCourse() {
                         </div>
                       ))}
                     </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="quiz.questions.0.question"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quiz Question</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter your question" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {[0, 1, 2, 3].map((optionIndex) => (
+                <FormField
+                  key={optionIndex}
+                  control={form.control}
+                  name={`quiz.questions.0.options.${optionIndex}`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Option {optionIndex + 1}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={`Enter option ${optionIndex + 1}`} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+
+              <FormField
+                control={form.control}
+                name="quiz.questions.0.correctAnswer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Correct Answer (0-3)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="0" 
+                        max="3" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
