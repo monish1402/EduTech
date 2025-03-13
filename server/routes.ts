@@ -56,6 +56,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(progress);
   });
 
+  app.get("/api/analytics/progress", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const userProgress = await storage.getProgressByUserId(req.user.id);
+      res.json(userProgress);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch analytics data" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

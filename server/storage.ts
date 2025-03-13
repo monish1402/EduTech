@@ -33,6 +33,7 @@ export interface IStorage {
   updateCertificateStatus(id: number, status: string): Promise<Certificate>;
 
   sessionStore: session.Store;
+  getProgressByUserId(userId: number): Promise<Progress[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -171,6 +172,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(certificates.id, id))
       .returning();
     return results[0];
+  }
+  async getProgressByUserId(userId: number): Promise<Progress[]> {
+    return await this.db
+      .select()
+      .from(progress)
+      .where(eq(progress.userId, userId));
   }
 }
 

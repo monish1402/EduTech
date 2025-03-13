@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Course } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, BarChart2 } from "lucide-react";
 import CourseCard from "@/components/course-card";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -27,14 +27,22 @@ export default function HomePage() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
             Available Courses
           </h1>
-          {user?.isEducator && (
-            <Link href="/create-course">
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Course
+          <div className="flex gap-4">
+            <Link href="/analytics">
+              <Button variant="outline">
+                <BarChart2 className="h-4 w-4 mr-2" />
+                My Progress
               </Button>
             </Link>
-          )}
+            {user?.isEducator && (
+              <Link href="/create-course">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Course
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         {courses?.length === 0 ? (
