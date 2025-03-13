@@ -23,7 +23,7 @@ export const courses = pgTable("courses", {
       question: string;
       options: string[];
       correctAnswer: number;
-    }[]
+    }[];
   }>()
 });
 
@@ -37,6 +37,32 @@ export const progress = pgTable("progress", {
   lastAccessed: timestamp("last_accessed").notNull().defaultNow()
 });
 
+export const submissions = pgTable("submissions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  courseId: integer("course_id").notNull(),
+  content: text("content").notNull(),
+  submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+  similarityScore: integer("similarity_score"),
+  plagiarismDetected: boolean("plagiarism_detected").notNull().default(false),
+  matchedSubmissionIds: integer("matched_submission_ids").array(),
+  verificationHash: text("verification_hash").notNull(),
+});
+
+export const certificates = pgTable("certificates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  courseId: integer("course_id").notNull(),
+  issuedAt: timestamp("issued_at").notNull().defaultNow(),
+  verificationCode: text("verification_code").notNull().unique(),
+  status: text("status").notNull().default('valid'),
+  metadata: json("metadata").$type<{
+    grade: string;
+    completionDate: string;
+    plagiarismScore: number;
+  }>(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -48,7 +74,22 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertCourseSchema = createInsertSchema(courses);
 export const insertProgressSchema = createInsertSchema(progress);
 
+export const insertSubmissionSchema = createInsertSchema(submissions).omit({ 
+  id: true,
+  submittedAt: true,
+  similarityScore: true,
+  plagiarismDetected: true,
+  matchedSubmissionIds: true
+});
+
+export const insertCertificateSchema = createInsertSchema(certificates).omit({
+  id: true,
+  issuedAt: true
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Course = typeof courses.$inferSelect;
 export type Progress = typeof progress.$inferSelect;
+export type Submission = typeof submissions.$inferSelect;
+export type Certificate = typeof certificates.$inferSelect;

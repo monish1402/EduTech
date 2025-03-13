@@ -1,7 +1,7 @@
-import { User, Course, Progress, InsertUser } from "@shared/schema";
+import { User, Course, Progress, InsertUser, Submission, Certificate } from "@shared/schema";
 import session from "express-session";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { users, courses, progress } from "@shared/schema";
+import { users, courses, progress, submissions, certificates } from "@shared/schema";
 import pkg from "pg";
 const { Client } = pkg;
 import connectPg from "connect-pg-simple";
@@ -20,6 +20,17 @@ export interface IStorage {
 
   getProgress(userId: number, courseId: number): Promise<Progress | undefined>;
   updateProgress(progress: Progress): Promise<Progress>;
+
+  // New methods for submissions and certificates
+  createSubmission(submission: Omit<Submission, "id" | "submittedAt" | "similarityScore" | "plagiarismDetected" | "matchedSubmissionIds">): Promise<Submission>;
+  getSubmissionsByUserId(userId: number): Promise<Submission[]>;
+  getSubmissionsByCourseId(courseId: number): Promise<Submission[]>;
+  updateSubmissionPlagiarismStatus(id: number, similarityScore: number, isPlagiarized: boolean, matchedIds: number[]): Promise<Submission>;
+
+  createCertificate(certificate: Omit<Certificate, "id" | "issuedAt">): Promise<Certificate>;
+  getCertificateByVerificationCode(code: string): Promise<Certificate | undefined>;
+  getCertificatesByUserId(userId: number): Promise<Certificate[]>;
+  updateCertificateStatus(id: number, status: string): Promise<Certificate>;
 
   sessionStore: session.Store;
 }
@@ -91,6 +102,73 @@ export class DatabaseStorage implements IStorage {
         target: [progress.userId, progress.courseId],
         set: progressData,
       })
+      .returning();
+    return results[0];
+  }
+
+  async createSubmission(submission: Omit<Submission, "id" | "submittedAt" | "similarityScore" | "plagiarismDetected" | "matchedSubmissionIds">): Promise<Submission> {
+    const results = await this.db.insert(submissions).values(submission).returning();
+    return results[0];
+  }
+
+  async getSubmissionsByUserId(userId: number): Promise<Submission[]> {
+    return await this.db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.userId, userId));
+  }
+
+  async getSubmissionsByCourseId(courseId: number): Promise<Submission[]> {
+    return await this.db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.courseId, courseId));
+  }
+
+  async updateSubmissionPlagiarismStatus(
+    id: number,
+    similarityScore: number,
+    isPlagiarized: boolean,
+    matchedIds: number[]
+  ): Promise<Submission> {
+    const results = await this.db
+      .update(submissions)
+      .set({
+        similarityScore,
+        plagiarismDetected: isPlagiarized,
+        matchedSubmissionIds: matchedIds,
+      })
+      .where(eq(submissions.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async createCertificate(certificate: Omit<Certificate, "id" | "issuedAt">): Promise<Certificate> {
+    const results = await this.db.insert(certificates).values(certificate).returning();
+    return results[0];
+  }
+
+  async getCertificateByVerificationCode(code: string): Promise<Certificate | undefined> {
+    const results = await this.db
+      .select()
+      .from(certificates)
+      .where(eq(certificates.verificationCode, code))
+      .limit(1);
+    return results[0];
+  }
+
+  async getCertificatesByUserId(userId: number): Promise<Certificate[]> {
+    return await this.db
+      .select()
+      .from(certificates)
+      .where(eq(certificates.userId, userId));
+  }
+
+  async updateCertificateStatus(id: number, status: string): Promise<Certificate> {
+    const results = await this.db
+      .update(certificates)
+      .set({ status })
+      .where(eq(certificates.id, id))
       .returning();
     return results[0];
   }
