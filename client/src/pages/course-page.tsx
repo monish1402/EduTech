@@ -10,6 +10,8 @@ import Certificate from "@/components/certificate";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+const PASS_THRESHOLD = 70;
+
 export default function CoursePage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
@@ -56,13 +58,13 @@ export default function CoursePage() {
               <VideoPlayer videoUrl={course.videoUrl} />
             </CardContent>
           </Card>
-          
+
           <div className="mt-6">
             <h2 className="text-2xl font-semibold mb-4">Course Description</h2>
             <p className="text-muted-foreground">{course.description}</p>
           </div>
 
-          {progress?.completed && !progress.certificateIssued && (
+          {progress?.completed && progress.quizScore >= PASS_THRESHOLD && !progress.certificateIssued && (
             <div className="mt-6">
               <Certificate course={course} />
             </div>
@@ -75,8 +77,22 @@ export default function CoursePage() {
               <h2 className="text-xl font-semibold mb-4">Course Quiz</h2>
               {progress?.completed ? (
                 <div>
-                  <p className="text-muted-foreground mb-2">Quiz completed</p>
-                  <p className="font-medium">Score: {progress.quizScore}%</p>
+                  <p className="text-muted-foreground mb-2">
+                    Quiz completed with score: {progress.quizScore}%
+                  </p>
+                  {progress.quizScore < PASS_THRESHOLD && (
+                    <div className="mt-4">
+                      <p className="text-sm text-red-600 mb-2">
+                        Your score is below the required {PASS_THRESHOLD}% to earn a certificate.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => updateProgressMutation.mutate({ completed: false })}
+                      >
+                        Retake Quiz
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <QuizForm
