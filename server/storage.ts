@@ -1,83 +1,99 @@
 import { User, Course, Progress, InsertUser } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { users, courses, progress } from "@shared/schema";
+import pkg from "pg";
+const { Client } = pkg;
+import connectPg from "connect-pg-simple";
+import { eq, and } from 'drizzle-orm';
 
-const MemoryStore = createMemoryStore(session);
+const PostgresStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   getCourse(id: number): Promise<Course | undefined>;
   listCourses(): Promise<Course[]>;
   createCourse(course: Omit<Course, "id">): Promise<Course>;
-  
+
   getProgress(userId: number, courseId: number): Promise<Progress | undefined>;
   updateProgress(progress: Progress): Promise<Progress>;
-  
+
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private courses: Map<number, Course>;
-  private progress: Map<string, Progress>;
+export class DatabaseStorage implements IStorage {
+  private db: ReturnType<typeof drizzle>;
   sessionStore: session.Store;
-  currentId: number;
+  private client: Client;
 
   constructor() {
-    this.users = new Map();
-    this.courses = new Map();
-    this.progress = new Map();
-    this.currentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.client = new Client({
+      connectionString: process.env.DATABASE_URL,
+    });
+
+    this.client.connect();
+    this.db = drizzle(this.client);
+
+    this.sessionStore = new PostgresStore({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+      },
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const results = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    return results[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const results = await this.db.select().from(users).where(eq(users.username, username)).limit(1);
+    return results[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const results = await this.db.insert(users).values(insertUser).returning();
+    return results[0];
   }
 
   async getCourse(id: number): Promise<Course | undefined> {
-    return this.courses.get(id);
+    const results = await this.db.select().from(courses).where(eq(courses.id, id)).limit(1);
+    return results[0];
   }
 
   async listCourses(): Promise<Course[]> {
-    return Array.from(this.courses.values());
+    return await this.db.select().from(courses);
   }
 
   async createCourse(course: Omit<Course, "id">): Promise<Course> {
-    const id = this.currentId++;
-    const newCourse = { ...course, id };
-    this.courses.set(id, newCourse);
-    return newCourse;
+    const results = await this.db.insert(courses).values(course).returning();
+    return results[0];
   }
 
   async getProgress(userId: number, courseId: number): Promise<Progress | undefined> {
-    const key = `${userId}-${courseId}`;
-    return this.progress.get(key);
+    const results = await this.db
+      .select()
+      .from(progress)
+      .where(and(eq(progress.userId, userId), eq(progress.courseId, courseId)))
+      .limit(1);
+    return results[0];
   }
 
-  async updateProgress(progress: Progress): Promise<Progress> {
-    const key = `${progress.userId}-${progress.courseId}`;
-    this.progress.set(key, progress);
-    return progress;
+  async updateProgress(progressData: Progress): Promise<Progress> {
+    const results = await this.db
+      .insert(progress)
+      .values(progressData)
+      .onConflictDoUpdate({
+        target: [progress.userId, progress.courseId],
+        set: progressData,
+      })
+      .returning();
+    return results[0];
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
