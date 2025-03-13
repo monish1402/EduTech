@@ -19,18 +19,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/courses", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user.isEducator) {
-      return res.sendStatus(403);
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
     }
 
-    const parsed = insertCourseSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json(parsed.error);
+    if (!req.user.isEducator) {
+      return res.status(403).json({ message: "Only educators can create courses" });
+    }
 
-    const course = await storage.createCourse({
-      ...parsed.data,
-      educatorId: req.user.id,
-    });
-    res.status(201).json(course);
+    try {
+      const parsed = insertCourseSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json(parsed.error);
+      }
+
+      const course = await storage.createCourse({
+        ...parsed.data,
+        educatorId: req.user.id,
+      });
+
+      res.status(201).json(course);
+    } catch (error) {
+      console.error("Error creating course:", error);
+      res.status(500).json({ message: "Failed to create course" });
+    }
   });
 
   app.get("/api/progress/:courseId", async (req, res) => {
