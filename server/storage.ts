@@ -27,7 +27,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   private db: ReturnType<typeof drizzle>;
   sessionStore: session.Store;
-  private client: Client;
+  private client: pkg.Client;
 
   constructor() {
     this.client = new Client({
