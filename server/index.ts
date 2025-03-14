@@ -1,8 +1,21 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+import dotenv from "dotenv";
+dotenv.config();
+
 
 const app = express();
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "MonikaSri@2112", // Use a secret key
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }, // Set to `true` if using HTTPS
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

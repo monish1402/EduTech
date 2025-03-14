@@ -16,7 +16,7 @@ export const courses = pgTable("courses", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   thumbnail: text("thumbnail").notNull(),
-  educatorId: integer("educator_id").notNull(),
+  educatorId: integer("educator_id").notNull().references(() => users.id),
   videoUrl: text("video_url").notNull(),
   quiz: json("quiz").notNull().$type<{
     questions: {
@@ -29,8 +29,8 @@ export const courses = pgTable("courses", {
 
 export const progress = pgTable("progress", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  courseId: integer("course_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  courseId: integer("course_id").notNull().references(() => courses.id),
   completed: boolean("completed").notNull().default(false),
   quizScore: integer("quiz_score"),
   certificateIssued: boolean("certificate_issued").notNull().default(false),
@@ -39,20 +39,20 @@ export const progress = pgTable("progress", {
 
 export const submissions = pgTable("submissions", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  courseId: integer("course_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  courseId: integer("course_id").notNull().references(() => courses.id),
   content: text("content").notNull(),
   submittedAt: timestamp("submitted_at").notNull().defaultNow(),
   similarityScore: integer("similarity_score"),
   plagiarismDetected: boolean("plagiarism_detected").notNull().default(false),
   matchedSubmissionIds: integer("matched_submission_ids").array(),
-  verificationHash: text("verification_hash").notNull(),
+  verificationHash: text("verification_hash").notNull()
 });
 
 export const certificates = pgTable("certificates", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  courseId: integer("course_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  courseId: integer("course_id").notNull().references(() => courses.id),
   issuedAt: timestamp("issued_at").notNull().defaultNow(),
   verificationCode: text("verification_code").notNull().unique(),
   status: text("status").notNull().default('valid'),
@@ -60,7 +60,7 @@ export const certificates = pgTable("certificates", {
     grade: string;
     completionDate: string;
     plagiarismScore: number;
-  }>(),
+  }>()
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
